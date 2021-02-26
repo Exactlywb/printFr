@@ -12,7 +12,9 @@ section .text
 global  printFr
 printFr:  
 
-    push r9      
+    pop r14                                 ;ret adress
+
+    push r9
     push r8
     push rcx
     push rdx
@@ -28,6 +30,8 @@ printFr:
     ;push outputStr
     ;push 'I'
     
+    mov r15, rsp
+
     mov rsi, rdi
 
     mov r10, rsp
@@ -37,13 +41,8 @@ printFr:
 
 HandleFormatStr:
 
-    mov al, [rsi]               ;мб есть смысл в функцию MyLoad, но мб это медленно
-    call SwitchForSymbType
+    mov al, [rsi]               
 
-    jmp HandleFormatStr
-
-
-SwitchForSymbType:
     cmp al, 0
     je Exit
 
@@ -52,8 +51,16 @@ SwitchForSymbType:
 
     call PrintSymb
 
-    ret
+    jmp HandleFormatStr
 
+;--------------------------------------------------------------------------------
+;Print our symbol
+;^^^^^^^^^^^^^^^^
+;Entry: rsi
+;^^^^^
+;Destr: rax, rdx, rdi, rsi
+;^^^^^
+;--------------------------------------------------------------------------------
 PrintSymb:
 
     mov rax, 1
@@ -154,13 +161,13 @@ Print_str:
         inc rsi
         jmp HandleFormatStr
 
-;---------------------HEX
+;--------------------------------------------------------------------------------hex
 
 Print_hex:
     mov r9, rsi     
     call ConvertToHex
 
-    mov rbx, rcx
+    mov rbx, rcx                ;this line is an asshole.
     call PrintBuildedNum
 
     mov rsi, r9
@@ -168,6 +175,15 @@ Print_hex:
     inc rsi
     jmp HandleFormatStr
 
+;--------------------------------------------------------------------------------
+;Convert into hex (16)
+;^^^^^^^^^^^^^^^^
+;Entry:r10
+;^^^^^
+;
+;Destr:r10, rbx, rcx, r11
+;^^^^^
+;--------------------------------------------------------------------------------
 ConvertToHex:
 
     mov rax, [r10]
@@ -203,9 +219,9 @@ ConvertToHex:
 
     ret  
 
-;------------------------------------------
+;--------------------------------------------------------------------------------
 
-;---------------------Octal
+;-------------------------------------------------------------------------------- Octal
 
 Print_oct:
     mov r9, rsi     
@@ -219,6 +235,15 @@ Print_oct:
     inc rsi
     jmp HandleFormatStr
 
+;--------------------------------------------------------------------------------
+;Convert into oct (8)
+;^^^^^^^^^^^^^^^^
+;Entry:r10
+;^^^^^
+;
+;Destr:r10, rbx, rcx, r11
+;^^^^^
+;--------------------------------------------------------------------------------
 ConvertToOct:
 
     mov rax, [r10]
@@ -254,7 +279,7 @@ ConvertToOct:
 
     ret  
 
-;------------------------------------------
+;--------------------------------------------------------------------------------
 
 Print_bin:
     mov r9, rsi     
@@ -268,6 +293,15 @@ Print_bin:
     inc rsi
     jmp HandleFormatStr
 
+;--------------------------------------------------------------------------------
+;Convert into bin (2)
+;^^^^^^^^^^^^^^^^
+;Entry:r10
+;^^^^^
+;
+;Destr:r10, rbx, rcx, r11
+;^^^^^
+;--------------------------------------------------------------------------------
 ConvertToBinary:
 
     mov rax, [r10]
@@ -316,6 +350,15 @@ Print_int:
     inc rsi
     jmp HandleFormatStr
 
+;--------------------------------------------------------------------------------
+;Convert into dec (10)
+;^^^^^^^^^^^^^^^^
+;Entry:r10
+;^^^^^
+;
+;Destr:r10, rbx, rcx, r11
+;^^^^^
+;--------------------------------------------------------------------------------
 ConvertToDecimal:
 
     mov rax, [r10]
@@ -350,6 +393,15 @@ ConvertToDecimal:
 
     ret
 
+;--------------------------------------------------------------------------------
+;Here we print our builded num from rsi
+;^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+;
+;Entry: rsi, rbx 
+;^^^^^
+;Destr: rax, rdx, rdi, rsi, rbx
+;^^^^^
+;--------------------------------------------------------------------------------
 PrintBuildedNum:
     mov rax, 1
     mov rdx, 1
@@ -365,11 +417,19 @@ PrintBuildedNum:
     ret
 
 Exit:
-    mov rax, 60
-    xor rdi, rdi
-    syscall
+
+    mov rsp, r15
+    sub rsp, 48
+    push r14
+
     ret    
 
+;--------------------------------------------------------------------------------
+;Our data 
+;^^^^^^^^
+;Note : here we put our constants
+;^^^^
+;--------------------------------------------------------------------------------
 section .data
 
     ;formatStr           db      '%c %s %d is %b, %o, %x', 0    
