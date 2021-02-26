@@ -9,19 +9,29 @@ bits 64
 ;--------------------------
 
 section .text
-global  _start
-_start:
+global  printFr
+printFr:  
 
-    mov rsi, formatStr                     ; our string-format
+    push r9      
+    push r8
+    push rcx
+    push rdx
+    push rsi
+    push rdi
+
+    ;mov rsi, formatStr                     ; our string-format
     
-    push 3802
-    push 3802
-    push 3802
-    push 3802
-    push outputStr
-    push 'I'
+    ;push 3802
+    ;push 3802
+    ;push 3802
+    ;push 3802
+    ;push outputStr
+    ;push 'I'
     
+    mov rsi, rdi
+
     mov r10, rsp
+    add r10, 8
     
     jmp HandleFormatStr
 
@@ -186,8 +196,8 @@ ConvertToHex:
 
     dec rcx
 
-    mov rsi, buf        ;Set our rsi at the end to out inverse string
-    add rsi, rcx        ;
+    mov rsi, buf                ;Set our rsi at the end to out inverse string
+    add rsi, rcx                ;
 
     inc rcx
 
@@ -237,8 +247,8 @@ ConvertToOct:
 
     dec rcx
 
-    mov rsi, buf        ;Set our rsi at the end to out inverse string
-    add rsi, rcx        ;
+    mov rsi, buf                ;Set our rsi at the end to out inverse string
+    add rsi, rcx                ;
 
     inc rcx
 
@@ -286,15 +296,15 @@ ConvertToBinary:
 
     dec rcx
 
-    mov rsi, buf        ;Set our rsi at the end to out inverse string
-    add rsi, rcx        ;
+    mov rsi, buf                ;Set our rsi at the end to out inverse string
+    add rsi, rcx                ;
 
     inc rcx
 
     ret    
 
 Print_int:
-    mov r9, rsi     ;save data
+    mov r9, rsi                 ;save data
 
     call ConvertToDecimal
 
@@ -319,11 +329,11 @@ ConvertToDecimal:
         xor rdx, rdx
         div rbx
 
-        mov r8, buf         ;
-        add r8, rcx         ;Here we set next buf symb to write into
-        inc rcx             ;
+        mov r8, buf             ;
+        add r8, rcx             ;Here we set next buf symb to write into
+        inc rcx                 ;
 
-        add rdx, alph       ;Here we got our num symbol
+        add rdx, alph           ;Here we got our num symbol
 
         mov r11, [rdx]
         mov [r8], r11
@@ -333,8 +343,8 @@ ConvertToDecimal:
 
     dec rcx
 
-    mov rsi, buf        ;Set our rsi at the end to out inverse string
-    add rsi, rcx        ;
+    mov rsi, buf            ;Set our rsi at the end to out inverse string
+    add rsi, rcx            ;
 
     inc rcx
 
@@ -362,11 +372,14 @@ Exit:
 
 section .data
 
-formatStr           db      '%c %s %d is %b, %o, %x', 0    
-outputStr           db      'love the fact that', 0
+    ;formatStr           db      '%c %s %d is %b, %o, %x', 0    
+    ;outputStr           db      'love the fact that', 0
 
-alph                db      '0123456789ABCDEF'
-buf                 resb    64
+    alph                db      '0123456789ABCDEF'
 
-typeErrMsg          db      0dh, 'Unexpected symbol after %'
-typeErrLength       equ     $ - typeErrMsg
+    typeErrMsg          db      0dh, 'Unexpected symbol after %'
+    typeErrLength       equ     $ - typeErrMsg
+
+section .bss
+
+    buf                 resb    64
