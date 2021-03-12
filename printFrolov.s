@@ -9,28 +9,27 @@ bits 64
 ;--------------------------
 
 section .text
+
 global  printFr
 printFr:  
 
-    pop r14                                 ;ret adress
+    %macro symbOut 1
+
+        mov rax, 1
+        mov rdx, %1
+        mov rdi, 1
+        syscall
+
+    %endmacro
+
+    pop r14                                 ; ret adress
 
     push r9
     push r8
     push rcx
     push rdx
-    push rsi
+    push rsi        
     push rdi
-
-    ;mov rsi, formatStr                     ; our string-format
-    
-    ;push 3802
-    ;push 3802
-    ;push 3802
-    ;push 3802
-    ;push outputStr
-    ;push 'I'
-    
-    mov r15, rsp
 
     mov rsi, rdi
 
@@ -49,6 +48,9 @@ HandleFormatStr:
     cmp al, '%'
     je HandleCommand
 
+    cmp al, '\'
+    je HandleEscs
+
     call PrintSymb
 
     jmp HandleFormatStr
@@ -63,52 +65,75 @@ HandleFormatStr:
 ;--------------------------------------------------------------------------------
 PrintSymb:
 
-    mov rax, 1
-    mov rdx, 1
-    mov rdi, 1
-    syscall
+    symbOut 1
+
     inc rsi
     ret
 
 HandleCommand:
-    
-    inc si
+
+    inc rsi
     call SwitchForCommandType
 
     jmp HandleFormatStr
 
 SwitchForCommandType:
+
+    xor rax, rax
     mov al, [rsi]
 
-    cmp al, 'c'
-    je Print_char
+    xor rbx, rbx
 
-    cmp al, 's'
-    je Print_str
+    mov rbx, [branchTable + rax * 8]
 
-    cmp al, 'd'
-    je Print_int
+    jmp rbx
 
-    cmp al, 'b'
-    je Print_bin
+HandleEscs:
+    
+    inc rsi
+    call SwitchForEscType
 
-    cmp al, 'o'
-    je Print_oct
+    jmp HandleFormatStr
 
-    cmp al, 'x'
-    je Print_hex
+Print_line_break:
 
-    jmp CommandErr
+    mov r9, rsi
+
+    mov rsi, 0dh
+    symbOut 1 
+
+    mov rsi, r9
+    inc rsi
+
+    jmp HandleFormatStr
+
+Print_tab:
+
+    mov r9, rsi
+
+    mov rsi, 9
+    symbOut 1 
+
+    mov rsi, r9
+    inc rsi
+
+    jmp HandleFormatStr    
+
+SwitchForEscType:
+
+    xor rax, rax
+    mov al,  [rsi]
+
+    xor rbx, rbx
+
+    mov rbx, [branchTableEsc + rax * 8]
+
+    jmp rbx
 
 CommandErr:
 
     mov rsi, typeErrMsg
-
-    mov rax, 1
-    mov rdi, 1
-    mov rdx, typeErrLength
-
-    syscall
+    symbOut typeErrLength
 
     jmp Exit
 
@@ -119,10 +144,7 @@ Print_char:
     mov rsi, r10
     add r10, 8
 
-    mov rax, 1      ;<---O
-    mov rdi, 1      ;    U   
-    mov rdx, 1      ;    T
-    syscall         ;<---
+    symbOut 1
     
     mov rsi, r9     ;return data
 
@@ -141,18 +163,10 @@ Print_str:
         cmp al, 0
         je  Print_str_back
 
-        mov rax, 1
-        mov rdi, 1
-        mov rdx, 1
-        syscall
+        symbOut 1
         
         inc rsi
         jmp PrintTillNotEnd
-
-    ;mov rax, 1
-    ;mov rdi, 1
-    ;mov rdx, 4      ;length
-    ;syscall
 
     Print_str_back:
 
@@ -281,6 +295,13 @@ ConvertToOct:
 
 ;--------------------------------------------------------------------------------
 
+Print_perc:
+
+    symbOut 1
+
+    inc rsi
+    jmp HandleFormatStr
+
 Print_bin:
     mov r9, rsi     
     call ConvertToBinary
@@ -403,10 +424,7 @@ ConvertToDecimal:
 ;^^^^^
 ;--------------------------------------------------------------------------------
 PrintBuildedNum:
-    mov rax, 1
-    mov rdx, 1
-    mov rdi, 1
-    syscall
+    symbOut 1
 
     dec rsi
 
@@ -418,11 +436,9 @@ PrintBuildedNum:
 
 Exit:
 
-    mov rsp, r15
-    sub rsp, 48
     push r14
 
-    ret    
+    ret
 
 ;--------------------------------------------------------------------------------
 ;Our data 
@@ -432,14 +448,31 @@ Exit:
 ;--------------------------------------------------------------------------------
 section .data
 
-    ;formatStr           db      '%c %s %d is %b, %o, %x', 0    
-    ;outputStr           db      'love the fact that', 0
-
     alph                db      '0123456789ABCDEF'
 
-    typeErrMsg          db      0dh, 'Unexpected symbol after %'
+    typeErrMsg          db      0dh, 0x1B, '[1', 59, '31mUnexpected symbol', 0x1B, '[0m', 0dh   ;\e[1;31mUnexpected symbol \e[0m <- for red color string
     typeErrLength       equ     $ - typeErrMsg
 
-section .bss
+    branchTable         times ('%')             dq CommandErr
+                                                dq Print_perc
+                        times ('a' - '%')       dq CommandErr                    
+                                                dq Print_bin
+                                                dq Print_char
+                                                dq Print_int
+                        times ('g' - 'd')       dq CommandErr 
+                                                dq Print_hex
+                        times ('n' - 'h')       dq CommandErr
+                                                dq Print_oct
+                        times ('r' - 'o')       dq CommandErr
+                                                dq Print_str
+                        times (255 - 's')       dq CommandErr                                        
 
-    buf                 resb    64
+    branchTableEsc      times (9)               dq CommandErr                                   ;9 - tab ascii number
+                                                dq Print_tab
+                        times ('m' - 9)         dq CommandErr
+                                                dq Print_line_break
+                        times (255 - 'n')       dq CommandErr                        
+
+section .bss
+    
+    buf                 resb                    64
