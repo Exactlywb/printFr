@@ -5,7 +5,7 @@ My personal printf on asm
 
 Ded32 - 2 sem (asm)
 
-In this project i realize my own printf (printFr)
+In this project I implement my own **printf** function (printFr)
 
 My function supports formats
 
